@@ -15,12 +15,12 @@ export default {
     }
   },
   bcrypt: {
-    saltRounds: 8
+    saltRounds: 10
   },
   jwt: {
     jwtSecret: 'test!@#$%test',
     refreshJwtSecret: '!@#$%refresh!@#$%',
-    accessExpInMin: 10,
-    refreshExpInMin: 129600
+    accessExpInMin: 2000,
+    refreshExpInMin: 259200
   }
 }

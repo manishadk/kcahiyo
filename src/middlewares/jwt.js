@@ -1,125 +1,146 @@
 import jwt from 'jsonwebtoken'
-import log from 'winston-logger-setup'
 import config from '../config/config'
+import jwtsign from '../helpers/jwtsign'
+import User from '../models/User'
 const jwtSecret = config.jwt.jwtSecret
 const refreshJwtSecret = config.jwt.refreshJwtSecret
 
 let jwtmw = {
-  authMiddleware: (app) => {
-    jwtmw.accessMiddleware(app, '/user/list')
+  authMiddleware: (app, apiList) => {
+    apiList.forEach((api) => {
+      app.use(api, jwtmw.jwtAuth())
+    })
   },
 
-  accessMiddleware: (app, privateApi) => {
-    app.use(privateApi, jwtmw.jwtAuth({secret: jwtSecret}))
-  },
-
-  refreshMiddleware: (app, privateApi) => {
-    app.use(privateApi, jwtmw.refreshJwtAuth({secret: refreshJwtSecret}))
-  },
-
-  jwtAuth: (signature) => {
+  jwtAuth: () => {
     return (req, res, next) => {
-      if (typeof (req.headers.authorization) === 'undefined') {
-        res.status(401).json({
-          result: 'failure',
-          success: 0,
-          error: 1,
-          error_msg: 'Token not provided',
-          statusCode: 401,
-          errorCode: 402
-        })
+      if (typeof (req.headers.authorization) === 'undefined' && typeof (req.headers.refreshtoken) === 'undefined') {
+        jwtmw.errorResponse(res, 401, 'Token not provided')
       } else {
-        let authHeader = req.headers.authorization
-        let header = authHeader.split(' ')[0]
-        if (header.toLowerCase() === 'bearer') {
-          let token = authHeader.split(' ')[1]
-          jwt.verify(token, signature.secret, {ignoreExpiration: true}, (err, decoded) => {
-              // log.cnsl(decoded, {})
-            if (decoded) {
-              let currentTime = parseInt((Date.now()) * 0.001)
-              let diff = currentTime - decoded.exp
-              // log.cnsl(diff, {})
-              if (diff >= 0) {
-                let token = jwt.sign({id: decoded.id, email: decoded.email}, refreshJwtSecret, {expiresIn: 60})
-                res.setHeader('authorization', 'Bearer ' + token)
-                res.status(401).json({
-                  result: 'failure',
-                  success: 0,
-                  error: 1,
-                  error_msg: 'Token expired',
-                  statusCode: 401,
-                  errorCode: 401
+        if (req.headers.authorization) {
+          let authHeader = req.headers.authorization
+          let header = authHeader.split(' ')[0]
+          if (header.toLowerCase() === 'bearer') {
+            let token = authHeader.split(' ')[1]
+            jwt.verify(token, jwtSecret, (err, decoded) => {
+              if (decoded) {
+                User.findOne({id: decoded.id}, (error, user) => {
+                  if (error) {
+                    jwtmw.errorResponse(res, 500, 'Unexpected error: jwt middleware -> user model')
+                  } else if (user) {
+                    req.user = decoded
+                    next()
+                  } else {
+                    jwtmw.errorResponse(res, 400, 'AccessToken: invalid token')
+                  }
+                })
+              }
+              if (err) {
+                if (req.headers.refreshtoken) {
+                  let authHeader = req.headers.refreshtoken
+                  let header = authHeader.split(' ')[0]
+                  if (header.toLowerCase() === 'bearer') {
+                    let token = authHeader.split(' ')[1]
+                    jwt.verify(token, refreshJwtSecret, (e, decoded) => {
+                      if (decoded) {
+                        User.findOne({id: decoded.id}, (error, user) => {
+                          if (error) {
+                            jwtmw.errorResponse(res, 500, 'Unexpected error: jwt middleware -> user model')
+                          } else if (user) {
+                            jwtsign.generateAccessToken(decoded.data).then((newAccessToken) => {
+                              res.setHeader('authorization', 'Bearer ' + newAccessToken)
+                              jwtmw.errorResponse(res, 403, 'Access token refreshed')
+                            })
+                          } else {
+                            jwtmw.errorResponse(res, 400, 'AccessToken: invalid token')
+                          }
+                        })
+                      }
+                      if (e) {
+                        jwtmw.errorResponse(res, 400, 'AccessToken: ' + err.message + ' and RefreshToken: ' + e.message)
+                      }
+                    })
+                  } else {
+                    jwtmw.errorResponse(res, 401, 'AccessToken: ' + err.message + 'and Invalid RefreshToken header')
+                  }
+                } else {
+                  jwtmw.errorResponse(res, 400, 'AccessToken: ' + err.message)
+                }
+              }
+            })
+          } else {
+            if (req.headers.refreshtoken) {
+              let authHeader = req.headers.refreshtoken
+              let header = authHeader.split(' ')[0]
+              if (header.toLowerCase() === 'bearer') {
+                let token = authHeader.split(' ')[1]
+                jwt.verify(token, refreshJwtSecret, (e, decoded) => {
+                  if (decoded) {
+                    User.findOne({id: decoded.id}, (error, user) => {
+                      if (error) {
+                        jwtmw.errorResponse(res, 500, 'Unexpected error: jwt middleware -> user model')
+                      } else if (user) {
+                        jwtsign.generateAccessToken(decoded.data).then((newAccessToken) => {
+                          res.setHeader('authorization', 'Bearer ' + newAccessToken)
+                          jwtmw.errorResponse(res, 403, 'Access token refreshed')
+                        })
+                      } else {
+                        jwtmw.errorResponse(res, 400, 'AccessToken: invalid token')
+                      }
+                    })
+                  }
+                  if (e) {
+                    jwtmw.errorResponse(res, 400, 'Invalid AccessToken header' + ' and RefreshToken: ' + e.message)
+                  }
                 })
               } else {
-                req.user = decoded
-                next()
+                jwtmw.errorResponse(res, 401, 'Invalid AccessToken header' + 'and Invalid RefreshToken header')
               }
+            } else {
+              jwtmw.errorResponse(res, 400, 'Invalid AccessToken header')
             }
-            if (err) {
-              next(err)
-            }
-          })
+          }
         } else {
-          res.status(401).json({
-            result: 'failure',
-            success: 0,
-            error: 1,
-            error_msg: 'Invalid authorization header',
-            statusCode: 401,
-            errorCode: 401
-          })
+          let authHeader = req.headers.refreshtoken
+          let header = authHeader.split(' ')[0]
+          if (header.toLowerCase() === 'bearer') {
+            let token = authHeader.split(' ')[1]
+            jwt.verify(token, refreshJwtSecret, (e, decoded) => {
+              if (decoded) {
+                User.findOne({id: decoded.id}, (error, user) => {
+                  if (error) {
+                    jwtmw.errorResponse(res, 500, 'Unexpected error: jwt middleware -> user model')
+                  } else if (user) {
+                    jwtsign.generateAccessToken(decoded.data).then((newAccessToken) => {
+                      res.setHeader('authorization', 'Bearer ' + newAccessToken)
+                      jwtmw.errorResponse(res, 403, 'Access token refreshed')
+                    })
+                  } else {
+                    jwtmw.errorResponse(res, 400, 'AccessToken: invalid token')
+                  }
+                })
+              }
+              if (e) {
+                jwtmw.errorResponse(res, 400, 'RefreshToken: ' + e.message)
+              }
+            })
+          } else {
+            jwtmw.errorResponse(res, 401, 'Invalid RefreshToken header')
+          }
         }
       }
     }
   },
 
-  refreshJwtAuth: (signature) => {
-    return (req, res, next) => {
-      // log.cnsl(req.headers, {})
-      if (typeof (req.headers.refreshauthorization) === 'undefined') {
-        res.status(401).json({
-          result: 'failure',
-          success: 0,
-          error: 1,
-          error_msg: 'Refresh token not provided',
-          statusCode: 401,
-          errorCode: 402
-        })
-      } else {
-        let authHeader = req.headers.refreshauthorization
-        let header = authHeader.split(' ')[0]
-        if (header.toLowerCase() === 'bearer') {
-          let token = authHeader.split(' ')[1]
-          jwt.verify(token, signature.secret, (err, decoded) => {
-            if (decoded) {
-              // log.cnsl('decoded', {})
-              req.refreshTokenData = decoded
-              next()
-            }
-            if (err) {
-              log.cnsl('err', {})
-              res.status(401).json({
-                result: 'failure',
-                success: 0,
-                error: 1,
-                error_msg: 'Refresh token expired',
-                statusCode: 401,
-                errorCode: 402
-              })
-            }
-          })
-        } else {
-          res.status(401).json({
-            result: 'failure',
-            success: 0,
-            error: 1,
-            error_msg: 'Invalid authorization header',
-            statusCode: 401,
-            errorCode: 401
-          })
-        }
-      }
-    }
+  errorResponse: (res, code, errorMsg) => {
+    res.status(code).json({
+      result: 'failure',
+      success: 0,
+      error: 1,
+      errorMsg,
+      statusCode: code,
+      errorCode: code
+    })
   }
 }
 

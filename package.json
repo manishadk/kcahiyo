@@ -1,7 +1,7 @@
 {
-  "name": "KChayio",
+  "name": "node-with-mongo-db",
   "version": "1.0.0",
-  "description": "KchayioAPP",
+  "description": "MongoDB integeration",
   "scripts": {
     "start": "run-s lint start:dev",
     "start:dev": "nodemon --exec babel-node src/server/index.js",
@@ -12,9 +12,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "KChayio"
+    "mongo"
   ],
-  "author": "manishadk",
+  "author": "Sujan Shrestha <shrsujan2007@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^1.0.2",

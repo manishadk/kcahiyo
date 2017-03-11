@@ -5,6 +5,19 @@ import UserSchema from './schemas/UserSchema'
 //   return this.firstName + ' ' + this.lastName
 // })
 
-let User = mongoose.model('User', UserSchema)
+UserSchema.pre('save', function (next) {
+  mongoose.models['users'].findOne({email: this.email}, (err, result) => {
+    if (err) {
+      next(err)
+    } else if (result) {
+      this.invalidate('email', 'This email is already registered')
+      next(new Error('This email is already registered'))
+    } else {
+      next()
+    }
+  })
+})
+
+let User = mongoose.model('users', UserSchema)
 
 export default User
