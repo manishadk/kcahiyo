@@ -1,7 +1,7 @@
 {
-  "name": "node-with-mongo-db",
+  "name": "KcahiyoAPP",
   "version": "1.0.0",
-  "description": "MongoDB integeration",
+  "description": "KchaiyoAPP",
   "scripts": {
     "start": "run-s lint start:dev",
     "start:dev": "nodemon --exec babel-node src/server/index.js",
@@ -14,7 +14,7 @@
   "keywords": [
     "mongo"
   ],
-  "author": "Sujan Shrestha <shrsujan2007@gmail.com>",
+  "author": "manishadk",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^1.0.2",
