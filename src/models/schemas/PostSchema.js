@@ -6,7 +6,7 @@ let PostSchema = new Schema({
   category: String,
   subCategory: String,
   content: String,
-  titleImage: [],
+  titleImage: String,
   salary: Number,
   userDetails: {type: Schema.ObjectId, ref: 'users', default: null},
   locationDetails: {type: Schema.ObjectId, ref: 'locations', default: null},
