@@ -3,7 +3,11 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 export default {
+<<<<<<< HEAD
+  port: process.env.PORT || 27017,
+=======
   port: process.env.PORT || 1234,
+>>>>>>> parent of 119f6bb... Added multiple-image-upload feature
   database: {
     connection: {
       url: process.env.DB_URL
