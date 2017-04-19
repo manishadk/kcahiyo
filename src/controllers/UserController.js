@@ -12,7 +12,8 @@ exports.collectToRegister = (req, res, next) => {
     'lastName',
     'email',
     'password',
-    'deviceId'
+    'deviceId',
+    'hideUserDetails'
   ])
   collectInstance.setFiles(['profilePic'])
   collectInstance.setMandatoryFields({
@@ -27,6 +28,7 @@ exports.collectToRegister = (req, res, next) => {
     req.userData = data
     next()
   }).catch((err) => {
+    err.status = 400
     next(err)
   })
 }
@@ -41,8 +43,10 @@ exports.register = (req, res, next) => {
         let newUser = new User(req.userData)
         newUser.save((err, data) => {
           if (err) {
-            throw err
+            next(err)
           } else {
+            // remove password from data
+            // change for test as well
             req.cdata = {
               success: 1,
               message: 'User registered successfully',
@@ -51,10 +55,13 @@ exports.register = (req, res, next) => {
             next()
           }
         })
+      }).catch((e) => {
+        throw e
       })
     }).catch((e) => {
-      log.cnsl(e, {})
-      next(e)
+      let error = new Error(e)
+      log.error(error, {})
+      next(error)
     })
   } catch (err) {
     let error = new Error(err)
@@ -65,7 +72,7 @@ exports.register = (req, res, next) => {
 
 exports.list = (req, res, next) => {
   try {
-    User.find((err, data) => {
+    User.find({}, {password: 0}, (err, data) => {
       if (err) {
         throw err
       } else {
@@ -95,6 +102,7 @@ exports.collectToLogin = (req, res, next) => {
     req.loginData = data
     next()
   }).catch((err) => {
+    err.status = 400
     next(err)
   })
 }
@@ -104,18 +112,24 @@ exports.authenticate = (req, res, next) => {
     password.compare(req.loginData, User).then((data) => {
       delete data.password
       jwtsign.generateAccessToken(data).then((accessToken) => {
-        res.setHeader('authorization', 'Bearer ' + accessToken)
-        req.cdata = {
-          success: 1,
-          message: 'Login successful'
-        }
-        next()
+        jwtsign.generateRefreshToken(data).then((refreshToken) => {
+          res.setHeader('authorization', 'Bearer ' + accessToken)
+          res.setHeader('refreshtoken', 'Bearer ' + refreshToken)
+          req.cdata = {
+            success: 1,
+            message: 'Login successful'
+          }
+          next()
+        }).catch((e) => {
+          throw e
+        })
       }).catch((e) => {
         throw e
       })
     }).catch((e) => {
-      log.error(e, {})
-      next(e)
+      let error = new Error(e)
+      log.error(error, {})
+      next(error)
     })
   } catch (err) {
     let error = new Error(err)

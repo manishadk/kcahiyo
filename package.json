@@ -1,7 +1,7 @@
 {
   "name": "node-with-mongo-db",
   "version": "1.0.0",
-  "description": "MongoDB integeration",
+  "description": "K chaiyo APP",
   "scripts": {
     "start": "run-s lint start:dev",
     "start:dev": "nodemon --exec babel-node src/server/index.js",
@@ -9,12 +9,12 @@
     "clean": "rimraf dist/",
     "build": "run-s lint clean babel",
     "babel": "babel src -d dist/",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": ". ./resources/scripts/test.sh"
   },
   "keywords": [
     "mongo"
   ],
-  "author": "Sujan Shrestha <shrsujan2007@gmail.com>",
+  "author": "Manish Adhikari",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^1.0.2",
