@@ -9,6 +9,7 @@ let router = express.Router()
 router.post('/register', UC.collectToRegister, UC.register, mw.respond, mw.error)
 router.post('/login', UC.collectToLogin, UC.authenticate, mw.respond, mw.error)
 router.get('/user/list', UC.list, mw.respond, mw.error)
+router.get('/useractivation/:activationCode', UC.activate, mw.respond, mw.error)
 
 router.post('/location/insert', LC.collectToInsert, LC.insert, mw.respond, mw.error)
 router.get('/location/list', LC.list, mw.respond, mw.error)

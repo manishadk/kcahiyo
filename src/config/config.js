@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 export default {
+  host: process.env.NODE_ENV,
   port: process.env.PORT || 1234,
   database: {
     connection: {

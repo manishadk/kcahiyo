@@ -11,6 +11,7 @@ let UserSchema = new Schema({
   profilePic: String,
   deviceId: String,
   hideUserDetails: {type: Boolean, default: 0},
+  status: {type: Boolean, default: 0},
   dateCreated: {type: Date, default: Date.now}
 }, {
   toObject: {

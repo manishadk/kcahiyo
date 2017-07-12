@@ -10,7 +10,7 @@ import jwt from '../middlewares/jwt'
 let app = express()
 
 app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.urlencoded({ extended: true }))
 
 jwt.authMiddleware(app, [
   '/user/list',
@@ -64,6 +64,14 @@ app.get('/add', (req, res, next) => {
   })
 })
 */
+
+app.use(function (req, res, next) {
+  if (config.host === 'development') {
+    res.locals.host = 'http://localhost'
+    res.locals.port = config.port
+  }
+  next()
+})
 
 app.use('/', routes)
 
